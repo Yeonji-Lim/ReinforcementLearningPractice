@@ -36,13 +36,17 @@ class DeepSARSAgent:
         if np.random.rand() <= self.epsilon:
             return random.randrange(self.action_size)
         else:
+            # state를 모델에 집어넣어서 출력을 반환
             q_values = self.model(state)
+
+            # 출력이 [[],[],[],[],[]]형식이기 때문에 [0]을 붙여서 한꺼풀 벗김, 5개(행동의 개수)의 큐함수
             return np.argmax(q_values[0])
 
 
 if __name__ == "__main__":
     # 환경과 에이전트 생성
     env = Env(render_speed=0.05)
+
     state_size = 15
     action_space = [0, 1, 2, 3, 4]
     action_size = len(action_space)
@@ -59,10 +63,11 @@ if __name__ == "__main__":
         state = np.reshape(state, [1, state_size])
 
         while not done:
-            # 현재 상태에 대한 행동 선택
+            # 1. 현재 상태에 대한 행동 선택
             action = agent.get_action(state)
 
             # 선택한 행동으로 환경에서 한 타임스텝 진행 후 샘플 수집
+            # 2. 행동을 취한 후 환경에서 한 타임스텝 진행, 3. 환경으로부터 다음 상태와 보상을 받음
             next_state, reward, done = env.step(action)
             next_state = np.reshape(next_state, [1, state_size])
 
