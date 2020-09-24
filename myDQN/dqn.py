@@ -26,7 +26,7 @@ class DQNAgent:
         self.discount_factor = 0.99
         # self.learning_rate = 0.001
 
-        self.epsilon = 1.0
+        self.epsilon = 1.
         self.epsilon_start, self.epsilon_end = 1.0, 0.1
         # self.epsilon_decay = 0.999
         # self.epsilon_min = 0.01
@@ -64,12 +64,12 @@ class DQNAgent:
         self.sess.run(tf.global_variables_initializer())
 
         if self.load_model:
-            self.model.load_weight("./save_model/breakout_dqn.h5")
+            self.model.load_weights("./save_model/breakout_dqn.h5")
 
     # Huber Loss를 이용하기 위해 최적화 함수를 직접 정의 : -1,1범위에서는 2차함수, 나머지 구간은 1차
     # REINFORCE 에서 했던 거 참고
     def optimizer(self):
-        a = K.placeholder(shape=(None, ), dtype='int32')
+        a = K.placeholder(shape=(None,), dtype='int32')
         y = K.placeholder(shape=(None,), dtype='float32')
 
         prediction = self.model.output
@@ -139,7 +139,7 @@ class DQNAgent:
         history = np.zeros((self.batch_size, self.state_size[0], self.state_size[1], self.state_size[2]))
         next_history = np.zeros((self.batch_size, self.state_size[0], self.state_size[1], self.state_size[2]))
         target = np.zeros((self.batch_size,))
-        actions, rewards, dead = [], [], []
+        action, reward, dead = [], [], []
 
         # 무작위로 추출한 샘플을 집어 넣음
         for i in range(self.batch_size):
@@ -148,8 +148,8 @@ class DQNAgent:
             history[i] = np.float32(mini_batch[i][0] / 255.)
             next_history[i] = np.float32(mini_batch[i][3] / 255.)
 
-            actions.append(mini_batch[i][1])
-            rewards.append(mini_batch[i][2])
+            action.append(mini_batch[i][1])
+            reward.append(mini_batch[i][2])
             dead.append(mini_batch[i][4])
 
         # 현재 상태에 대한 모델의 큐함수
@@ -162,13 +162,13 @@ class DQNAgent:
         for i in range(self.batch_size):
             if dead[i]:    # 죽은 경우 Rt+1만 정답
                 # target[i][actions[i]] = rewards[i]
-                target[i] = rewards[i]
+                target[i] = reward[i]
             else:   # 정답 = Rt+1 + (gamma) * a'maxQ(St+1,a',(theta)-)
-                target[i] = rewards[i] + self.discount_factor * (np.amax(target_value[i]))
+                target[i] = reward[i] + self.discount_factor * np.amax(target_value[i])
 
         # model.fit이 아니라 optimizer로 모델을 업데이트 : 오류함수로 MSE를 사용하지 않기 때문
         # self.model.fit(states, target, batch_size=self.batch_size, epochs=1, verbose=0)
-        loss = self.optimizer([history, actions, target])
+        loss = self.optimizer([history, action, target])
         self.avg_loss += loss[0]
 
     # 각 에피소드 당 학습 정보를 기록
